@@ -4,6 +4,7 @@
 static void handleCanMessage(FDCAN_RxHeaderTypeDef rxHeader, uint8_t *rxData);
 static void init_CAN(void);
 static void Button_Down(void);
+static void handleInterrupt(void);
 //The correct pin sequence here is: Gnd, CAN L, CAN H, 5V
 // pass in optional shutdown and terminator pins that disable transceiver and add 120ohm resistor respectively
 SimpleCan can1(A_CAN_SHDN, A_CAN_TERM);
@@ -11,6 +12,7 @@ SimpleCan::RxHandler can1RxHandler(8, handleCanMessage);
 
 FDCAN_TxHeaderTypeDef TxHeader;
 uint8_t TxData[8];
+static bool is_pressed = false;
 
 void setup()
 {
@@ -23,7 +25,7 @@ void setup()
 		;
 
 	pinMode(LED_BUILTIN, OUTPUT);
-	attachInterrupt(digitalPinToInterrupt(USER_BTN), Button_Down, LOW);
+	attachInterrupt(digitalPinToInterrupt(USER_BTN), handleInterrupt, LOW);
 
 	delay(100);
 	init_CAN();
@@ -31,7 +33,9 @@ void setup()
 
 void loop()
 {
-	// handleCanMessage();
+	if (is_pressed) {
+		Button_Down();
+	}
 }
 
 static void init_CAN()
@@ -105,8 +109,14 @@ static void handleCanMessage(FDCAN_RxHeaderTypeDef rxHeader, uint8_t *rxData)
 	digitalToggle(LED_BUILTIN);
 }
 
+static void handleInterrupt(void)
+{
+	is_pressed = true;
+}
+
 static void Button_Down()
 {
+	is_pressed = false;
 	static uint32_t lasttime = 0;
 	if(millis() - lasttime < 500) return;
 	lasttime = millis();
